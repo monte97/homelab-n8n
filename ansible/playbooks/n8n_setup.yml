@@ -1,0 +1,169 @@
+---
+- name: Setup n8n with Docker and Docker Compose
+  hosts: n8n
+  become: yes
+  vars:
+    n8n_data_dir: "/opt/n8n_data"
+    n8n_port: 5678
+    n8n_domain: "n8n.K8S2.homelab"
+    n8n_timezone: "Europe/Rome"
+    n8n_docker_image: "docker.n8n.io/n8nio/n8n"
+    n8n_docker_tag: "latest"
+  tasks:
+    - name: Update apt cache (if Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install required system packages
+      ansible.builtin.package:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - openssl
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker Engine
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install compatible Docker Python packages
+      ansible.builtin.pip:
+        name:
+          - docker==6.1.3
+          - docker-compose==1.29.2
+        state: present
+
+    - name: Remove old n8n containers and data (cleanup)
+      ansible.builtin.shell: |
+        docker compose down || true
+        docker container rm -f n8n || true
+        docker volume rm n8n_data || true
+      args:
+        chdir: "{{ n8n_data_dir }}"
+      ignore_errors: yes
+
+    - name: Create n8n data directory
+      ansible.builtin.file:
+        path: "{{ n8n_data_dir }}"
+        state: directory
+        mode: '0755'
+
+    # Rimuovere la gestione della encryption key per ora - n8n la genererà automaticamente
+    # - name: Check if encryption key file exists
+    #   ansible.builtin.stat:
+    #     path: "{{ n8n_data_dir }}/.env"
+    #   register: env_file_stat
+
+    # - name: Generate encryption key for n8n (on target host)
+    #   ansible.builtin.shell: openssl rand -base64 32
+    #   register: n8n_encryption_key
+    #   when: not env_file_stat.stat.exists
+
+    # - name: Create .env file for Docker Compose
+    #   ansible.builtin.copy:
+    #     content: |
+    #       N8N_ENCRYPTION_KEY={{ n8n_encryption_key.stdout }}
+    #     dest: "{{ n8n_data_dir }}/.env"
+    #     mode: '0600'
+    #   when: not env_file_stat.stat.exists
+
+    - name: Create Docker Compose file for n8n
+      ansible.builtin.copy:
+        content: |
+          version: '3.8'
+          
+          services:
+            n8n:
+              image: {{ n8n_docker_image }}:{{ n8n_docker_tag }}
+              container_name: n8n
+              restart: unless-stopped
+              ports:
+                - "{{ n8n_port }}:5678"
+              environment:
+                - N8N_SECURE_COOKIE=false
+                - N8N_HOST={{ n8n_domain }}
+                - N8N_PORT=5678
+                - N8N_PROTOCOL=http
+                - WEBHOOK_URL=http://{{ n8n_domain }}:{{ n8n_port }}
+                - GENERIC_TIMEZONE={{ n8n_timezone }}
+                - TZ={{ n8n_timezone }}
+                - N8N_LOG_LEVEL=info
+                - N8N_DIAGNOSTICS_ENABLED=false
+                
+              volumes:
+                - n8n_data:/home/node/.n8n
+              
+              # Rimuovere il comando personalizzato - lasciare che il container usi il suo entrypoint di default
+              
+              # Rimuovere health check per ora
+              # healthcheck:
+              #   test: ["CMD-SHELL", "curl -f http://localhost:5678/healthz || exit 1"]
+              #   interval: 30s
+              #   timeout: 10s
+              #   retries: 5
+              #   start_period: 30s
+              
+          volumes:
+            n8n_data:
+              external: false
+        dest: "{{ n8n_data_dir }}/docker-compose.yml"
+        mode: '0644'
+      notify: Restart n8n container
+
+    # Rimuovere la gestione dei permessi manuali - usiamo volume Docker
+    # - name: Ensure n8n data directory has correct permissions
+    #   ansible.builtin.file:
+    #     path: "{{ n8n_data_dir }}"
+    #     owner: "1000"
+    #     group: "1000"
+    #     mode: '0755'
+    #     recurse: yes
+
+    - name: Start n8n container with Docker Compose (using command)
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ n8n_data_dir }}"
+      register: docker_compose_result
+      changed_when: "'Creating' in docker_compose_result.stdout or 'Starting' in docker_compose_result.stdout"
+
+  handlers:
+    - name: Restart n8n container
+      ansible.builtin.command:
+        cmd: docker compose restart
+        chdir: "{{ n8n_data_dir }}"
+      listen: "Restart n8n container"

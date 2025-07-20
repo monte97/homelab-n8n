@@ -1,0 +1,142 @@
+# terraform/terraform.tfvars.example
+# Copy this file to terraform.tfvars and customize the values
+
+# =============================================================================
+# PROXMOX CONFIGURATION
+# =============================================================================
+
+# Proxmox API endpoint - replace with your Proxmox server IP/hostname
+proxmox_api_url = "https://192.168.1.100:8006/api2/json"
+
+# API Token - Create this in Proxmox: Datacenter > Permissions > API Tokens
+# Format: username@realm!tokenid
+proxmox_api_token_id = "root@pam!terraform"
+
+# API Token Secret - Generated when you create the token (copy immediately!)
+proxmox_api_token_secret = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Proxmox node name - check in Proxmox UI or run 'pvecm nodes'
+proxmox_node = "pve"
+
+# Skip TLS verification (set to false for production with valid certificates)
+proxmox_tls_insecure = true
+
+# Enable debug logging (for troubleshooting)
+proxmox_debug = false
+
+# =============================================================================
+# CONTAINER CONFIGURATION
+# =============================================================================
+
+# Unique container ID (must be unique across your Proxmox cluster)
+vm_id = 200
+
+# Container hostname (will be visible in Proxmox and used as hostname)
+vm_name = "n8n-prod"
+
+# CPU cores (adjust based on your needs and available resources)
+vm_cores = 2
+
+# Memory in MB (n8n recommends minimum 1GB, 2GB+ for production workloads)
+vm_memory = 2048
+
+# Swap space in MB
+vm_swap = 512
+
+# Storage pool name - check available pools with 'pvesm status'
+# Common values: "local-lvm", "local-zfs", "ceph", etc.
+vm_storage = "local-lvm"
+
+# Root filesystem size
+vm_disk_size = "20G"
+
+# Dedicated data disk for n8n persistence
+vm_data_disk_size = "10G"
+
+# Run as unprivileged container (recommended for security)
+vm_unprivileged = true
+
+# Start container automatically when Proxmox boots
+vm_onboot = true
+
+# Start container immediately after creation
+vm_start = true
+
+# Enable container nesting (required for Docker)
+vm_enable_nesting = true
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+
+# Network bridge - usually vmbr0 for default bridge
+vm_network_bridge = "vmbr0"
+
+# Static IP address with CIDR notation
+# IMPORTANT: Ensure this IP is:
+# - Not used by another device
+# - In your local network range
+# - Outside your DHCP pool range
+vm_ip_address = "192.168.1.50/24"
+
+# Default gateway (usually your router IP)
+vm_gateway = "192.168.1.1"
+
+# DNS nameserver (can be your router, or public DNS like 8.8.8.8)
+vm_nameserver = "192.168.1.1"
+
+# =============================================================================
+# TEMPLATE CONFIGURATION
+# =============================================================================
+
+# LXC template name - must exist in your Proxmox storage
+# Download templates: Proxmox UI > Node > local > CT Templates > Templates
+# Common Ubuntu templates:
+# - ubuntu-22.04-standard_22.04-1_amd64.tar.zst (recommended)
+# - ubuntu-20.04-standard_20.04-1_amd64.tar.zst
+template_name = "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+
+# =============================================================================
+# SSH CONFIGURATION (OPTIONAL BUT RECOMMENDED)
+# =============================================================================
+
+# SSH public keys for passwordless root access
+# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
+# Then copy content of ~/.ssh/id_rsa.pub
+# Example: ssh_public_keys = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7..."
+ssh_public_keys = ""
+
+# Path to your SSH private key (for Terraform provisioning)
+ssh_private_key = "~/.ssh/id_rsa"
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Enable Proxmox firewall rules for the container
+enable_firewall = true
+
+# Container tags (visible in Proxmox UI for organization)
+vm_tags = "n8n;automation;homelab"
+
+# Environment name (for organizing multiple deployments)
+environment = "homelab"
+
+# =============================================================================
+# EXAMPLE CONFIGURATIONS FOR DIFFERENT SETUPS
+# =============================================================================
+
+# MINIMAL SETUP (for testing/development):
+# vm_cores = 1
+# vm_memory = 1024
+# vm_disk_size = "10G"
+
+# PRODUCTION SETUP (for heavy workflows):
+# vm_cores = 4
+# vm_memory = 4096
+# vm_disk_size = "50G"
+# vm_data_disk_size = "20G"
+
+# MULTIPLE ENVIRONMENTS:
+# For staging: vm_id = 201, vm_name = "n8n-staging", vm_ip_address = "192.168.1.51/24"
+# For dev: vm_id = 202, vm_name = "n8n-dev", vm_ip_address = "192.168.1.52/24"
