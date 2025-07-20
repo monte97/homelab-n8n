@@ -54,8 +54,8 @@ homelab-n8n-proxmox-automation/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/homelab-n8n-proxmox-automation.git
-cd homelab-n8n-proxmox-automation
+git clone https://github.com/monte97/homelab-n8n.git
+cd homelab-n8n
 ```
 
 ### 2. Configure Variables
