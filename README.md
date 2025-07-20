@@ -36,12 +36,9 @@ homelab-n8n-proxmox-automation/
 │   │   └── n8n/
 │   └── ansible.cfg
 ├── scripts/                      # Utility scripts
-│   ├── bootstrap.sh
-│   ├── deploy.sh
-│   └── destroy.sh
-└── docs/                        # Documentation
-    ├── setup.md
-    └── troubleshooting.md
+    ├── deploy.sh
+    └── destroy.sh
+
 ```
 
 ## 🚀 Quick Start
