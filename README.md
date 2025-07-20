@@ -23,19 +23,10 @@ homelab-n8n-proxmox-automation/
 │   └── versions.tf
 ├── ansible/                      # Ansible playbooks and configuration
 │   ├── inventory/
-│   │   ├── hosts.yml
-│   │   └── group_vars/
-│   │       └── all.yml
-│   ├── playbooks/
-│   │   ├── site.yml
-│   │   ├── n8n-setup.yml
-│   │   └── post-install.yml
-│   ├── roles/
-│   │   ├── common/
-│   │   ├── docker/
-│   │   └── n8n/
-│   └── ansible.cfg
-├── scripts/                      # Utility scripts
+│   │   └── hosts.yml
+│   └── playbooks/
+│       └── n8n-setup.yml
+└── scripts/                      # Utility scripts
     ├── deploy.sh
     └── destroy.sh
 
